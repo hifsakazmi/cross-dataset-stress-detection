@@ -9,14 +9,10 @@ Cross dataset stress detection
 |Nurse dataset|Hospital (COVID ward)|15|Real-world occupational|E4 + RespiBAN chest|
 
 ## Setup
+### 1. Clone the repository
 ```console
 git clone https://github.com/hifsakazm/cross-dataset-stress-detection.git
 cd cross-dataset-stress-detection
-```
-### 1. Clone the repository
-```console
-# set DATASET = "dataset1" for 2-Class Dataset
-DATASET = "dataset2" # This is 4-Class Dataset
 ```
 ### 2. Create virtual environment
 ```console
