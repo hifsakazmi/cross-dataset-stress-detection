@@ -1,1 +1,24 @@
+# Virtual environment
+stress-env/
 
+# Data
+data_extracted/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Results 
+*.pkl
+*.joblib
