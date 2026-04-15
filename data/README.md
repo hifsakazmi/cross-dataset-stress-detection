@@ -8,12 +8,14 @@ Download these and place the zip files in your Google Drive under `stress-data/`
 - 15 subjects, lab setting, Trier Social Stress Test
 
 ## Nurse Stress
+- **Primary Article**: https://www.nature.com/articles/s41597-022-01361-y
 - **Download:** https://datadryad.org/stash/dataset/doi:10.5061/dryad.5hqbzkh6f
 - **File:** doi_10_5061_dryad_5hqbzkh6f__v20210917.zip
 - 15 nurses, hospital during COVID
 
-## Campanella (Italian)
-- **Download:** Link from https://www.sciencedirect.com/science/article/pii/S2352340924000751
+## Campanella 
+- **Primary Article:** https://www.sciencedirect.com/science/article/pii/S2352340924000751
+- **Download:** https://data.mendeley.com/datasets/kb42z77m2g/2 
 - **File:** Data_29_subjects.zip
 - 29 subjects, lab setting, cognitive tasks
 
