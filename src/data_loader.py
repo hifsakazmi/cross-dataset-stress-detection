@@ -5,7 +5,15 @@ from pathlib import Path
 
 SIGNAL_NAMES = ["ACC", "BVP", "EDA", "HR", "IBI", "TEMP"]
 
-def read_e4_csv(filepath):
+E4_SAMPLING_RATES = {
+    "ACC": 32,
+    "BVP": 64,
+    "EDA": 4,
+    "HR": 1,
+    "TEMP": 4,
+}
+
+def read_e4_csv(filepath, signal_name):
     """Read a single Empatica E4 CSV file and return a time-indexed DataFrame."""
 
     if not os.path.exists(filepath):
@@ -15,8 +23,18 @@ def read_e4_csv(filepath):
         line1 = f.readline().strip()
         line2 = f.readline().strip()
 
-    start_timestamp = float(line1.split(",")[0])
-    sampling_rate = float(line2.split(",")[0])
+    first_val = float(line1.split(",")[0].split()[0]) 
+    
+    if first_val > 1_000_000_000:
+        # WESAD/Nurse format: line1=timestamp, line2=sampling_rate, skip 2 rows
+        start_timestamp = first_val
+        sampling_rate = float(line2.split(",")[0].split()[0])
+        skip_rows = 2
+    else:
+        # Campanella format: no timestamp, use known sampling rate
+        start_timestamp = 0
+        sampling_rate = E4_SAMPLING_RATES[signal_name]
+        skip_rows = 0
 
     df = pd.read_csv(filepath, skiprows=2, header=None)
 
@@ -34,6 +52,9 @@ def read_e4_ibi(filepath):
     Line 1: start timestamp
     Remaining lines: time_offset, ibi_duration
     """
+    # Handle empty files
+    if os.path.getsize(filepath) == 0:
+        raise ValueError(f"IBI file is empty: {filepath}")
 
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"File not found: {filepath}")
@@ -41,7 +62,16 @@ def read_e4_ibi(filepath):
     with open(filepath, "r") as f:
         line1 = f.readline().strip()
 
-    start_timestamp = float(line1.split(",")[0])
+    first_val = float(line1.split(",")[0].split()[0]) 
+    
+    if first_val > 1_000_000_000:
+        # WESAD/Nurse format: line1=timestamp, line2=sampling_rate, skip 2 rows
+        start_timestamp = first_val
+        skip_rows = 1
+    else:
+        # Campanella format: no timestamp, use known sampling rate
+        start_timestamp = 0
+        skip_rows = 0
 
     df = pd.read_csv(filepath, skiprows=1, header=None, names=["offset", "ibi"])
 
@@ -77,7 +107,7 @@ def load_subject(dataset_name, subject_id, data_root="data"):
                 signals["IBI"] = read_e4_ibi(filepath)
                 sampling_rates["IBI"] = None
             else:
-                df, sr = read_e4_csv(filepath)
+                df, sr = read_e4_csv(filepath, signal_name=signal_name)
                 signals[signal_name] = df
                 sampling_rates[signal_name] = sr
         except Exception as e:
@@ -107,11 +137,9 @@ def list_subjects(dataset_name, data_root="data"):
     return subjects
 
 
-def load_dataset(dataset_name, data_root="data", subjects=None):
+def load_dataset(dataset_name, data_root="data"):
     """Load all subjects from a dataset."""
-
-    if subjects is None:
-        subjects = list_subjects(dataset_name, data_root)
+    subjects = list_subjects(dataset_name, data_root)
 
     print(f"Loading {dataset_name} ({len(subjects)} subjects)...")
 
@@ -125,15 +153,20 @@ def load_dataset(dataset_name, data_root="data", subjects=None):
 
 
 if __name__ == "__main__":
-    # Test with one subject — update this path to match your setup
-    signals, rates = load_subject(
-        dataset_name="nurse",
-        subject_id="5C/5C_1586886626",
-        data_root="E:/Hifsa/AML/Project/Nurses-dataset/Stress_dataset"
-    )
+    data_path = "data_extracted"
+    load_dataset('campanella', data_path)
+    load_dataset('nurse', data_path)
+    load_dataset('wesad', data_path)
 
-    for name, df in signals.items():
-        print(f"\n{name}:")
-        print(f"  Shape: {df.shape}")
-        print(f"  Time: {df.index[0]} → {df.index[-1]}")
-        print(df.head(3))
+    # Test with one subject — update this path to match your setup
+    # signals, rates = load_subject(
+    #     dataset_name="campanella",
+    #     subject_id="subject_01",
+    #     data_root="data_extracted"
+    # )
+
+    # for name, df in signals.items():
+    #     print(f"\n{name}:")
+    #     print(f"  Shape: {df.shape}")
+    #     print(f"  Time: {df.index[0]} → {df.index[-1]}")
+    #     print(df.head(3))
