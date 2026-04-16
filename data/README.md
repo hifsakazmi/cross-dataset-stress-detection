@@ -14,7 +14,8 @@ Download these and place the zip files in your Google Drive under `stress-data/`
 - 15 nurses, hospital during COVID
 
 ## Campanella 
-- **Primary Article:** https://www.sciencedirect.com/science/article/pii/S2352340924000751
+- **Primary Article:** https://www.mdpi.com/1424-8220/23/7/3565
+- **Data Descriptor:** https://www.sciencedirect.com/science/article/pii/S2352340924000751
 - **Download:** https://data.mendeley.com/datasets/kb42z77m2g/2 
 - **File:** Data_29_subjects.zip
 - 29 subjects, lab setting, cognitive tasks
