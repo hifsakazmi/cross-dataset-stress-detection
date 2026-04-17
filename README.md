@@ -6,7 +6,7 @@ Cross dataset stress detection
 |-------|-------|--------|-------------|-------|
 |WESAD|Lab (TSST protocol)|15|Psychological (Trier Social Stress Test)|E4 + RespiBAN chest|
 |Campanella et al.|Lab (Lego/cognitive tasks)|29|Cognitive/task-based (Lego, math, etc.)|E4 only|
-|Nurse dataset|Hospital (COVID ward)|15|Real-world occupational|E4 + RespiBAN chest|
+|Nurse dataset|Hospital (COVID ward)|15|Real-world occupational|E4 only|
 
 ## Setup
 ### 1. Clone the repository
