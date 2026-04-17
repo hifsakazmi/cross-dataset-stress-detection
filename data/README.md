@@ -3,6 +3,7 @@
 Download these and place the zip files in your Google Drive under `stress-data/`.
 
 ## WESAD
+- **Primary Article**: https://dl.acm.org/doi/10.1145/3242969.3242985
 - **Download:** https://archive.ics.uci.edu/dataset/465
 - **File:** WESAD.zip
 - 15 subjects, lab setting, Trier Social Stress Test
