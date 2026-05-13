@@ -145,27 +145,29 @@ def extract_nurse(drive_root, output_dir):
 
         print(f"  Found {len(subjects)} subjects")
 
-        # For each subject, take the LAST session zip
+        # For each subject, extract ALL session zips (not just the last one).
+        # Each session becomes its own folder: nurse/{subject_id}_{session_name}/
         for subject_id in sorted(subjects.keys()):
             session_list = sorted(subjects[subject_id])
-            last_session = session_list[-1]
-            session_name = Path(last_session).stem  # e.g., "5C_1586886626"
+            print(f"  {subject_id}: {len(session_list)} session(s)")
 
-            subject_out = out_dir / f"{subject_id}_{session_name}"
-            subject_out.mkdir(exist_ok=True)
+            for session_path in session_list:
+                session_name = Path(session_path).stem  # e.g., "5C_1586886626"
+                subject_out = out_dir / session_name
+                subject_out.mkdir(exist_ok=True)
 
-            # Level 3: Open the session zip, extract CSVs
-            session_bytes = stress_zip.read(last_session)
-            with zipfile.ZipFile(io.BytesIO(session_bytes), "r") as session_zip:
-                for member in session_zip.namelist():
-                    filename = Path(member).name
-                    if filename in E4_FILES:
-                        with session_zip.open(member) as src:
-                            with open(subject_out / filename, "wb") as dst:
-                                dst.write(src.read())
+                # Level 3: Open the session zip, extract CSVs
+                session_bytes = stress_zip.read(session_path)
+                with zipfile.ZipFile(io.BytesIO(session_bytes), "r") as session_zip:
+                    for member in session_zip.namelist():
+                        filename = Path(member).name
+                        if filename in E4_FILES:
+                            with session_zip.open(member) as src:
+                                with open(subject_out / filename, "wb") as dst:
+                                    dst.write(src.read())
 
-            extracted = [f.name for f in subject_out.glob("*.csv")]
-            print(f"  {subject_id} (session: {session_name}): {extracted}")
+                extracted = [f.name for f in subject_out.glob("*.csv")]
+                print(f"    {session_name}: {extracted}")
 
     print("Nurse done.\n")
 
@@ -174,9 +176,9 @@ if __name__ == "__main__":
     """
     For local testing. Update these paths to match your machine.
     """
-    DRIVE_ROOT = "E:/Project/datasets"
+    DRIVE_ROOT = "E:/Hifsa/AML/Project/datasets"
     OUTPUT = "data_extracted"
 
-    extract_campanella(DRIVE_ROOT, OUTPUT)
+    #extract_campanella(DRIVE_ROOT, OUTPUT)
     #extract_wesad(DRIVE_ROOT, OUTPUT)
-    #extract_nurse(DRIVE_ROOT, OUTPUT)
+    extract_nurse(DRIVE_ROOT, OUTPUT)
