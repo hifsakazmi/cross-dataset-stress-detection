@@ -96,6 +96,20 @@ def parse_surveys(survey_xlsx_path):
 
     df["nurse_id"] = df["ID"].astype(str)
 
+    # Deduplicate: two survey entries for the same nurse with identical
+    # (start_ts, end_ts, label) collapse to one row in the labels CSV after
+    # session-relative conversion. Drop them at the source. F5 on 2020-07-20
+    # has two such rows (14:27-14:54, level 2) — different events per the
+    # Description column, but identical timing and label, so indistinguishable
+    # downstream.
+    n_before = len(df)
+    df = df.drop_duplicates(
+        subset=["nurse_id", "survey_start_ts", "survey_end_ts", "label"]
+    ).reset_index(drop=True)
+    n_dropped = n_before - len(df)
+    if n_dropped > 0:
+        print(f"  Dropped {n_dropped} duplicate survey row(s)")
+
     return df[["nurse_id", "survey_start_ts", "survey_end_ts", "label"]].reset_index(drop=True)
 
 
