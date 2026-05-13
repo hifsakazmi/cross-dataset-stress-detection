@@ -111,6 +111,18 @@ def extract_nurse(drive_root, output_dir):
 
     print("Extracting Nurse dataset...")
 
+    # Also extract SurveyResults.xlsx from the outer zip — needed for labeling.
+    with zipfile.ZipFile(zip_path, "r") as outer_zip:
+        for name in outer_zip.namelist():
+            if Path(name).name == "SurveyResults.xlsx":
+                with outer_zip.open(name) as src:
+                    with open(out_dir / "SurveyResults.xlsx", "wb") as dst:
+                        dst.write(src.read())
+                print(f"  Extracted: SurveyResults.xlsx -> {out_dir / 'SurveyResults.xlsx'}")
+                break
+        else:
+            print("  WARNING: SurveyResults.xlsx not found in outer zip")
+
     # Level 1: Open outer zip, find Stress_dataset.zip inside
     with zipfile.ZipFile(zip_path, "r") as outer_zip:
         stress_zip_name = None
