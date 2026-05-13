@@ -30,9 +30,17 @@ def _stats_line(name, df):
     """One-line summary of a signal DataFrame."""
     if df is None or len(df) == 0:
         return f"    {name:5s}  EMPTY"
-    values = df.values.astype(float)
+    # IBI has columns [offset, ibi]; summarize only the ibi column,
+    # otherwise the giant offsets pollute the stats.
+    if name == "IBI":
+        col = "ibi" if "ibi" in df.columns else df.columns[-1]
+        values = df[[col]].values.astype(float)
+        shape_str = f"({len(df)},)"
+    else:
+        values = df.values.astype(float)
+        shape_str = str(df.shape)
     return (
-        f"    {name:5s}  shape={str(df.shape):12s}  "
+        f"    {name:5s}  shape={shape_str:12s}  "
         f"min={np.nanmin(values):8.3f}  "
         f"max={np.nanmax(values):8.3f}  "
         f"mean={np.nanmean(values):8.3f}  "
