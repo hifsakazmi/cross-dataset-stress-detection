@@ -2,6 +2,7 @@ from src.data_loader import load_subject
 from src.data_loader import load_dataset
 from src.labeling import get_campanella_labels
 from src.labeling import get_wesad_labels
+from src.labeling import get_nurse_labels
 from src.windowing import create_windows
 from pathlib import Path
 
@@ -79,7 +80,30 @@ def test_wesad_windowing():
             print(e)
             continue
 
+def test_nurse_windowing():
+    dataset = load_dataset("nurse", "data_extracted")
+    
+    for session_id, data in dataset.items():
+        try:
+            signals = data["signals"]
+            duration = min(
+                (sig.index[-1] - sig.index[0]).total_seconds()
+                for sig in signals.values() if len(sig) > 0
+            )
+            phases = get_nurse_labels(session_id)
+            if not phases:
+                continue  # no labeled surveys in this session
+            windows = create_windows(signals, phases, total_duration=duration)
+            stress = sum(1 for w in windows if w["label"] == 1)
+            non_stress = sum(1 for w in windows if w["label"] == 0)
+            nurse_id = session_id.split("_")[0]
+            print(f"{session_id} (nurse {nurse_id}): {duration/60:.1f} min, {len(windows)} windows, stress={stress}, non-stress={non_stress}")
+        except Exception as e:
+            print(f"{session_id}: {e}")
+            continue
+
 if __name__ == "__main__": 
     #test_create_windows()
     #test_campanella_windowing()
-    test_wesad_windowing()
+    #test_wesad_windowing()
+    test_nurse_windowing()

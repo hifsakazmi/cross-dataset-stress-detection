@@ -79,3 +79,15 @@ def get_wesad_labels(subject_id, labels_root="labels/wesad"):
     from pathlib import Path
     df = pd.read_csv(Path(labels_root) / f"{subject_id}.csv")
     return list(df.itertuples(index=False, name=None))
+
+def get_nurse_labels(session_id, labels_root="labels/nurse"):
+    """
+    Load pre-extracted Nurse phases for a session.
+    Returns empty list if no label file exists (session had no matching surveys).
+    """
+    from pathlib import Path
+    path = Path(labels_root) / f"{session_id}.csv"
+    if not path.exists():
+        return []
+    df = pd.read_csv(path)
+    return list(df.itertuples(index=False, name=None))
