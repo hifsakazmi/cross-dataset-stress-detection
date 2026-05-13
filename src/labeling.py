@@ -10,6 +10,7 @@ This module returns labels as (start_sec, end_sec, label) tuples,
 where label is 0 (non-stress) or 1 (stress).
 """
 
+import pandas as pd
 
 def get_campanella_labels(total_duration_sec):
     """
@@ -72,3 +73,9 @@ def get_label_for_time(time_sec, phases):
         if start <= time_sec < end:
             return label
     return None
+
+def get_wesad_labels(subject_id, labels_root="labels/wesad"):
+    """Load pre-extracted WESAD phases as (start_sec, end_sec, label) tuples."""
+    from pathlib import Path
+    df = pd.read_csv(Path(labels_root) / f"{subject_id}.csv")
+    return list(df.itertuples(index=False, name=None))
