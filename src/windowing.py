@@ -8,13 +8,15 @@ import pandas as pd
 from src.labeling import get_label_for_time
 
 
-def create_windows(signals, phases, total_duration=0, window_size_sec=60, overlap_sec=30):
+def create_windows(signals, phases, total_duration=None, window_size_sec=60, overlap_sec=30):
     """
     Segment a subject's signals into overlapping windows with labels.
 
     Args:
         signals:          Dict of signal_name -> DataFrame (from data_loader)
         phases:           List of (start_sec, end_sec, label) tuples
+        total_duration:   Recording duration in seconds. If None, computed as
+                          the shortest signal's duration (matches project convention).
         window_size_sec:  Window length in seconds
         overlap_sec:      Overlap between consecutive windows in seconds
 
@@ -25,10 +27,16 @@ def create_windows(signals, phases, total_duration=0, window_size_sec=60, overla
             - "start_sec": float
             - "end_sec": float
     """
-    # Pick any signal to determine recording start time and total duration
+    # Pick any signal to determine recording start time
     ref_signal = list(signals.values())[0]
     recording_start = ref_signal.index[0]
-    # total_duration = (ref_signal.index[-1] - recording_start).total_seconds()
+    
+    # Compute total_duration from shortest signal if not provided
+    if total_duration is None:
+        total_duration = min(
+            (sig.index[-1] - sig.index[0]).total_seconds()
+            for sig in signals.values() if len(sig) > 0
+        )
 
     step_sec = window_size_sec - overlap_sec
     windows = []

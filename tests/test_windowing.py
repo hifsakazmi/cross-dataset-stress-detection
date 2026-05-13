@@ -49,7 +49,7 @@ def test_campanella_windowing():
                 for sig in signals.values() if len(sig) > 0
             )
             phases = get_campanella_labels(duration)
-            windows = create_windows(signals, phases, total_duration=duration)
+            windows = create_windows(signals, phases)
             stress = sum(1 for w in windows if w["label"] == 1)
             non_stress = sum(1 for w in windows if w["label"] == 0)
             print(f"{subject_id}: {duration/60:.1f} min, {len(windows)} windows, stress={stress}, non-stress={non_stress}")
