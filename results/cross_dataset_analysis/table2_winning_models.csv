@@ -1,0 +1,10 @@
+normalization,,global,global,per_subject,per_subject
+threshold_policy,,fixed_0.5,source_tuned,fixed_0.5,source_tuned
+source,target,,,,
+campanella,nurse,rf,rf,svm,svm
+campanella,wesad,xgb,xgb,xgb,rf
+nurse,campanella,xgb,svm,xgb,svm
+nurse,wesad,xgb,xgb,xgb,rf
+wesad,campanella,xgb,xgb,svm,svm
+wesad,nurse,xgb,xgb,xgb,rf
+wesad+campanella,nurse,rf,svm,rf,rf

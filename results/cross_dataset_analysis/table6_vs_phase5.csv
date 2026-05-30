@@ -1,0 +1,8 @@
+source,target,phase6_best_macro_f1,phase5_within_target_pooled,delta_vs_within_target,model,normalization,threshold_policy
+campanella,nurse,0.507,0.439,0.068,rf,global,fixed_0.5
+campanella,wesad,0.468,0.758,-0.29,xgb,global,fixed_0.5
+nurse,campanella,0.474,0.684,-0.21,svm,per_subject,source_tuned
+nurse,wesad,0.439,0.758,-0.319,xgb,global,fixed_0.5
+wesad,campanella,0.393,0.684,-0.291,xgb,global,source_tuned
+wesad,nurse,0.376,0.439,-0.063,rf,per_subject,source_tuned
+wesad+campanella,nurse,0.526,0.439,0.087,svm,global,source_tuned

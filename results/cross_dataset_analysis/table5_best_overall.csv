@@ -1,0 +1,8 @@
+source,target,model,normalization,threshold_policy,macro_f1,balanced_accuracy,accuracy,roc_auc,best_threshold,n_train,n_test
+campanella,nurse,rf,global,fixed_0.5,0.507,0.507,0.687,0.538,0.5,1844,1720
+campanella,wesad,xgb,global,fixed_0.5,0.468,0.467,0.503,0.435,0.5,1844,919
+nurse,campanella,svm,per_subject,source_tuned,0.474,0.485,0.579,0.499,0.74,1720,1844
+nurse,wesad,xgb,global,fixed_0.5,0.439,0.51,0.444,0.518,0.5,1720,919
+wesad,campanella,xgb,global,source_tuned,0.393,0.493,0.402,0.478,0.42,919,1844
+wesad,nurse,rf,per_subject,source_tuned,0.376,0.466,0.385,0.452,0.4,919,1720
+wesad+campanella,nurse,svm,global,source_tuned,0.526,0.555,0.595,0.545,0.31,2763,1720

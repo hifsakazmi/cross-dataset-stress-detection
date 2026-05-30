@@ -1,0 +1,15 @@
+source,target,normalization,fixed_0.5,source_tuned,delta_tuned_vs_fixed
+campanella,nurse,global,0.507,0.505,-0.002
+campanella,nurse,per_subject,0.502,0.499,-0.003
+campanella,wesad,global,0.468,0.467,-0.001
+campanella,wesad,per_subject,0.465,0.458,-0.007
+nurse,campanella,global,0.435,0.458,0.023
+nurse,campanella,per_subject,0.464,0.474,0.01
+nurse,wesad,global,0.439,0.438,-0.001
+nurse,wesad,per_subject,0.399,0.41,0.01
+wesad,campanella,global,0.386,0.393,0.007
+wesad,campanella,per_subject,0.348,0.326,-0.022
+wesad,nurse,global,0.312,0.323,0.011
+wesad,nurse,per_subject,0.362,0.376,0.014
+wesad+campanella,nurse,global,0.409,0.526,0.116
+wesad+campanella,nurse,per_subject,0.521,0.521,0.0

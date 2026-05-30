@@ -509,3 +509,80 @@ def summarize_loso(results_df, by=("model",)):
     per_fold = results_df[results_df["held_out"] != "POOLED"]
     agg = per_fold.groupby(list(by))[metric_cols].agg(["mean", "std", "count"])
     return agg
+
+    # ----------------------------- transfer eval ------------------------------
+# Append this to src/models.py (after loso_evaluate, before any __main__ block).
+
+def evaluate_transfer(
+    train_df,
+    test_df,
+    model_name,
+    group_col="subject_id",
+    do_hparam_search=True,
+    do_threshold_tuning=True,
+    random_state=42,
+):
+    """
+    Cross-dataset transfer evaluation: train on `train_df`, predict on `test_df`.
+
+    Phase 6 building block. No held-out fold semantics — the entire train_df
+    is the training set, the entire test_df is the test set. Internally we
+    delegate to evaluate_fold, which already handles imputer/scaler fitting,
+    hparam search via inner GroupKFold over train subjects, and threshold
+    tuning on a held-in stratified slice of the training set.
+
+    Args:
+        train_df: feature rows for the source dataset (or pooled sources for
+                  multi-source experiments). Must contain META_COLUMNS plus
+                  numeric features. `group_col` must exist in train_df and be
+                  populated.
+        test_df:  feature rows for the target dataset. `group_col` is unused
+                  on the test side but must exist if the column doesn't have
+                  a default fill — pass the same column name as train_df.
+        model_name:   "rf" | "xgb" | "svm" — keys of MODEL_FACTORIES.
+        group_col:    column to use for the inner GroupKFold during hparam
+                      search. "subject_id" for WESAD/Campanella source.
+                      "nurse_id" when Nurse is the source (caller adds it
+                      via add_nurse_id from scripts/run_within_dataset.py).
+        do_hparam_search: pass through to evaluate_fold. Default True.
+        do_threshold_tuning: pass through to evaluate_fold. THIS IS THE
+                      THRESHOLD POLICY KNOB for Phase 6:
+                          True  → "source-tuned threshold"
+                          False → "0.5 threshold"
+        random_state: pass through.
+
+    Returns:
+        dict with keys:
+            n_train, n_test, n_train_groups,
+            best_threshold, best_params,
+            (all metric keys from _compute_metrics)
+    """
+    X_train, y_train, _ = _split_features_and_meta(train_df)
+    X_test, y_test, _ = _split_features_and_meta(test_df)
+    groups_train = train_df[group_col].values
+
+    if len(np.unique(y_train)) < 2:
+        raise ValueError(
+            f"Transfer training data is single-class "
+            f"(y_train unique values: {np.unique(y_train).tolist()}). "
+            f"Cannot fit a binary classifier."
+        )
+
+    metrics, best_threshold, best_params, _y_pred, _y_proba = evaluate_fold(
+        model_name,
+        X_train, y_train, groups_train,
+        X_test, y_test,
+        do_hparam_search=do_hparam_search,
+        do_threshold_tuning=do_threshold_tuning,
+        random_state=random_state,
+    )
+
+    row = {
+        "n_train": int(len(X_train)),
+        "n_test": int(len(X_test)),
+        "n_train_groups": int(len(np.unique(groups_train))),
+        "best_threshold": float(best_threshold),
+        "best_params": best_params,
+    }
+    row.update(metrics)
+    return row

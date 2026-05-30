@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.models import MODEL_FACTORIES, loso_evaluate, summarize_loso
 
 
-FEATURES_CSV = Path("data_extracted/features.csv")
+FEATURES_CSV = Path("data_extracted/features_unnormalized.csv")
 RESULTS_DIR = Path("results")
 LOSO_OUT = RESULTS_DIR / "within_dataset_loso.csv"
 SUMMARY_OUT = RESULTS_DIR / "within_dataset_summary.csv"

@@ -226,3 +226,41 @@ def normalize_signals(signals, mode="per_subject", global_stats=None):
         return apply_normalizer(signals, global_stats)
     else:
         raise ValueError(f"Unknown normalization mode: {mode}")
+    
+def fit_global_normalizer(signals_iter):
+    """
+    Fit pooled z-score statistics across many subjects' cleaned signals.
+
+    Counterpart to fit_normalizer for the 'global' arm of the Phase 6
+    normalization ablation: fit one transform on the source training
+    dataset's pooled signals, then apply it to every subject (source
+    and target) via normalize_signals(..., mode="global", global_stats=...).
+
+    IBI is excluded for the same reason as in fit_normalizer — HRV features
+    encode physiological units that z-scoring would destroy.
+
+    Args:
+        signals_iter: iterable yielding cleaned-signals dicts, one per
+                      subject. Output of preprocess_subject. Missing or
+                      empty signals are skipped per-signal.
+
+    Returns:
+        dict of signal_name -> (mean, std) ndarrays. For multi-column
+        signals (ACC, 3 axes), stats are per-column. std clipped to
+        >= 1e-8 to prevent division by zero on flat pools.
+    """
+    pooled = {}  # signal_name -> list of arrays
+    for signals in signals_iter:
+        for name, df in signals.items():
+            if df is None or len(df) == 0 or name == "IBI":
+                continue
+            pooled.setdefault(name, []).append(df.values.astype(float))
+
+    stats = {}
+    for name, arrays in pooled.items():
+        values = np.concatenate(arrays, axis=0)
+        mean = np.mean(values, axis=0)
+        std = np.std(values, axis=0)
+        std = np.where(std < 1e-8, 1.0, std)
+        stats[name] = (mean, std)
+    return stats

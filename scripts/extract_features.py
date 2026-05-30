@@ -27,7 +27,11 @@ import numpy as np
 import pandas as pd
 
 from src.data_loader import load_subject, list_subjects
-from src.preprocessing import preprocess_subject
+from src.preprocessing import (
+    preprocess_subject,
+    normalize_signals,
+    fit_global_normalizer,
+)
 from src.windowing import create_windows
 from src.labeling import get_campanella_labels, get_wesad_labels, get_nurse_labels
 from src.features import extract_features
@@ -67,10 +71,19 @@ PHASE_LOADERS = {
 
 # ---------- Process one subject ----------
 
-def process_subject(dataset_name, subject_id, data_root=DATA_ROOT):
+def process_subject(dataset_name, subject_id, data_root=DATA_ROOT,
+                    normalize_mode="none", global_stats=None):
     """
     Returns (features_df, status_dict). features_df is None on skip/error.
-    status_dict records what happened for the summary.
+
+    normalize_mode controls signal-level z-scoring applied between
+    preprocess_subject and create_windows:
+        "none"        — no normalization (legacy behavior; reproduces
+                        the original features.csv)
+        "per_subject" — fit stats on this subject's own signals
+        "global"      — apply pre-fit stats passed via global_stats
+                        (computed once over the source training pool
+                        by fit_global_stats_over_datasets below)
     """
     status = {
         "dataset": dataset_name,
@@ -83,6 +96,7 @@ def process_subject(dataset_name, subject_id, data_root=DATA_ROOT):
         "skipped": False,
         "skip_reason": None,
         "error": None,
+        "normalize_mode": normalize_mode,
     }
 
     # 1. Load
@@ -104,18 +118,42 @@ def process_subject(dataset_name, subject_id, data_root=DATA_ROOT):
     status["loaded"] = True
     status["n_signals"] = len(signals)
 
-    # 2. Preprocess
+    # 2. Preprocess (clean signals)
     try:
         signals = preprocess_subject(signals, dataset_name=dataset_name)
     except Exception as e:
         status["error"] = f"preprocessing failed: {e}"
         return None, status
 
+    # 2b. Optional normalization (Phase 6: signal-level z-score).
+    # Applied AFTER cleaning, BEFORE windowing, so window arrays carry
+    # normalized values into feature extraction. IBI is intentionally
+    # untouched — see fit_normalizer / fit_global_normalizer docstrings.
+    if normalize_mode == "per_subject":
+        try:
+            signals = normalize_signals(signals, mode="per_subject")
+        except Exception as e:
+            status["error"] = f"per-subject normalization failed: {e}"
+            return None, status
+    elif normalize_mode == "global":
+        if global_stats is None:
+            status["error"] = "normalize_mode='global' requires global_stats"
+            return None, status
+        try:
+            signals = normalize_signals(
+                signals, mode="global", global_stats=global_stats
+            )
+        except Exception as e:
+            status["error"] = f"global normalization failed: {e}"
+            return None, status
+    elif normalize_mode != "none":
+        status["error"] = f"unknown normalize_mode: {normalize_mode!r}"
+        return None, status
+
     # 3. Phases
     try:
         phases = PHASE_LOADERS[dataset_name](subject_id, signals)
     except ValueError as e:
-        # Campanella under-32-min subjects raise this
         status["skipped"] = True
         status["skip_reason"] = f"phase computation: {e}"
         return None, status
@@ -152,7 +190,7 @@ def process_subject(dataset_name, subject_id, data_root=DATA_ROOT):
     # 5. Features
     try:
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")  # neurokit2 / scipy edge-case warnings
+            warnings.simplefilter("ignore")
             df = extract_features(
                 windows,
                 subject_id=subject_id,
@@ -165,10 +203,52 @@ def process_subject(dataset_name, subject_id, data_root=DATA_ROOT):
 
     return df, status
 
+def fit_global_stats_over_datasets(source_datasets, data_root=DATA_ROOT,
+                                   verbose=True):
+    """
+    First-pass loader for global-mode normalization.
+
+    Walks every subject in every source dataset, runs load + preprocess
+    (NO windowing, NO features — those are expensive and don't change the
+    fitted stats), and pools the cleaned signals into one global stats
+    dict via fit_global_normalizer.
+
+    Returns: dict of signal_name -> (mean, std) suitable for passing as
+    global_stats to process_subject(..., normalize_mode="global", ...).
+
+    Subjects that fail loading or preprocessing are skipped with a
+    warning — they don't contribute to the pool but also don't crash
+    the fit.
+    """
+    def _iter_clean_signals():
+        for dataset_name in source_datasets:
+            subjects = list_subjects(dataset_name, data_root=data_root)
+            if verbose:
+                print(f"  fitting global stats: {dataset_name} "
+                      f"({len(subjects)} subjects)")
+            for subject_id in subjects:
+                try:
+                    signals, _ = load_subject(
+                        dataset_name=dataset_name,
+                        subject_id=subject_id,
+                        data_root=data_root,
+                    )
+                    if not signals:
+                        continue
+                    signals = preprocess_subject(
+                        signals, dataset_name=dataset_name
+                    )
+                    yield signals
+                except Exception as e:
+                    if verbose:
+                        print(f"    skip {dataset_name}/{subject_id}: {e}")
+                    continue
+
+    return fit_global_normalizer(_iter_clean_signals())
 
 # ---------- Per-dataset driver ----------
 
-def process_dataset(dataset_name, data_root=DATA_ROOT):
+def process_dataset(dataset_name, data_root=DATA_ROOT, normalize_mode="none", global_stats=None):
     """Process every subject in a dataset. Returns (features_df, [statuses])."""
     print(f"\n{'='*72}")
     print(f"  {dataset_name.upper()}")
@@ -182,7 +262,11 @@ def process_dataset(dataset_name, data_root=DATA_ROOT):
     t0 = time.time()
 
     for i, subject_id in enumerate(subjects, 1):
-        df, status = process_subject(dataset_name, subject_id, data_root)
+        df, status = process_subject(
+            dataset_name, subject_id, data_root=DATA_ROOT,
+            normalize_mode=normalize_mode,
+            global_stats=global_stats,
+        )
         statuses.append(status)
 
         # One-line per-subject log
@@ -317,14 +401,48 @@ def main():
         "--data-root", default=DATA_ROOT,
         help=f"Root of extracted data. Default: {DATA_ROOT}"
     )
+    parser.add_argument(
+        "--normalize-mode",
+        choices=["none", "per_subject", "global"],
+        default="none",
+        help="Signal-level z-score mode. 'none' reproduces the original "
+            "Phase 4 features.csv. 'per_subject' fits stats on each "
+            "subject's own signals. 'global' fits one transform on the "
+            "--source-datasets pool and applies it to all subjects.",
+    )
+    parser.add_argument(
+        "--source-datasets",
+        nargs="+",
+        choices=["campanella", "wesad", "nurse"],
+        default=None,
+        help="Datasets whose signals are pooled to fit global stats. "
+            "Required when --normalize-mode=global. Ignored otherwise.",
+    )
+
     args = parser.parse_args()
+
+    global_stats = None
+    if args.normalize_mode == "global":
+        if not args.source_datasets:
+            parser.error("--normalize-mode=global requires --source-datasets")
+        print(f"\nFitting global normalization stats on {args.source_datasets}...")
+        t0 = time.time()
+        global_stats = fit_global_stats_over_datasets(
+            args.source_datasets, data_root=DATA_ROOT,
+        )
+        print(f"  done in {time.time() - t0:.1f}s. "
+            f"Stats fit for signals: {sorted(global_stats.keys())}")
 
     all_dfs = []
     all_statuses = []
     total_t0 = time.time()
 
     for dataset_name in args.datasets:
-        df, statuses = process_dataset(dataset_name, data_root=args.data_root)
+        df, statuses = process_dataset(
+            dataset_name, data_root=DATA_ROOT,
+            normalize_mode=args.normalize_mode,
+            global_stats=global_stats,
+        )
         if not df.empty:
             all_dfs.append(df)
         all_statuses.extend(statuses)
