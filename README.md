@@ -26,3 +26,6 @@ pip install -r requirements.txt
 ```
 ### 4. Download datasets
 See `data/README.md` for download links and folder placement.
+
+### 5. Reproducing results
+To reproduce the published results, see `REPRODUCING.md`
