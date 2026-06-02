@@ -117,8 +117,6 @@ python -m scripts.run_within_dataset \
   --features-csv data_extracted/features_unnormalized.csv
 ```
 
-**Runtime:** ~15 min with the default hyperparameter grid across all three datasets and three models. Use `--no-search` to skip the grid (~12× faster) for a smoke run; the full grid is what matches the published numbers.
-
 Writes:
 - `results/within_dataset_loso.csv` — per-fold + POOLED rows
 - `results/within_dataset_summary.csv` — aggregated
@@ -138,8 +136,6 @@ python -m tests.test_transfer                  # ~5 sec smoke test
 
 python -m scripts.run_cross_dataset
 ```
-
-**Runtime:** ~13 min with the default hyperparameter grid. `--no-search` cuts it ~10×. Useful flags for partial runs: `--pairs wesad-campanella nurse-wesad`, `--models rf svm`, `--skip-multi-source`.
 
 Writes `results/cross_dataset_transfer.csv` (84 long-format rows) and `results/cross_dataset_summary.csv`.
 
@@ -173,20 +169,6 @@ Writes six tables to `results/cross_dataset_analysis/`:
 - `table4_threshold_gap.csv` — source_tuned minus fixed_0.5
 - `table5_best_overall.csv` — best-overall per (source, target)
 - `table6_vs_phase5.csv` — Phase 6 best vs Phase 5 within-target pooled baseline
-
-## End-to-end runtime summary
-
-| Step | Time |
-|---|---|
-| Setup + raw data extraction | ~10 min |
-| Label extraction | <1 min |
-| Feature extraction (6 variants) | ~70 min |
-| Phase 5 (full grid) | ~15 min |
-| Phase 6 (full grid, 84 experiments) | ~13 min |
-| Phase 6 aggregation | <10 sec |
-| **Total** | **~110 min** |
-
-Add ~5 min of test runs and verification. Subtract ~60 min if you `--no-search` everywhere (results will differ slightly, especially on SVM).
 
 ## Determinism and known sources of variance
 
