@@ -6,7 +6,6 @@ End-to-end recipe to go from a fresh clone to the final Phase 5 (within-dataset)
 
 - **Python 3.10 or 3.11.** Tested on Windows (PowerShell) and Linux. No GPU needed — everything runs on CPU.
 - **Disk:** ~20 GB free. Raw WESAD alone is 16 GB unzipped (we only need the 80 MB of E4 data, but `scripts/extract_data.py` unzips selectively).
-- **Time:** ~3 hours wall-clock end-to-end on a modern laptop. Feature regeneration is the biggest single cost (~70 min for all five normalization variants).
 
 ## 1. Setup
 
